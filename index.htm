@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Special Surprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;600;700&family=Sacramento&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        :root {
+            --primary: #ff7eb3;
+            --secondary: #ff758c;
+            --accent: #7afcff;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: #1a1a2e; /* Darker backdrop for pop */
+            color: #333;
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        .cursive {
+            font-family: 'Sacramento', cursive;
+        }
+
+        /* --- Canvas Background --- */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #fff0f5 0%, #e6e9f0 100%);
+        }
+
+        /* --- 3D Scene Container --- */
+        #scene-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            perspective: 1000px;
+            transition: opacity 0.8s ease-in-out, visibility 0.8s;
+        }
+
+        /* --- True 3D Cube Gift --- */
+        .cube-wrapper {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out; /* For mouse follow */
+            cursor: pointer;
+        }
+
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            animation: spinIntro 15s infinite linear;
+        }
+
+        .cube-face {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border: 2px solid rgba(255,255,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.1);
+        }
+
+        .face-front  { transform: rotateY(0deg) translateZ(100px); }
+        .face-back   { transform: rotateY(180deg) translateZ(100px); }
+        .face-right  { transform: rotateY(90deg) translateZ(100px); }
+        .face-left   { transform: rotateY(-90deg) translateZ(100px); }
+        .face-top    { transform: rotateX(90deg) translateZ(100px); background: #ff8fa3; }
+        .face-bottom { transform: rotateX(-90deg) translateZ(100px); box-shadow: 0 50px 100px rgba(0,0,0,0.5); }
+
+        /* Ribbons on faces */
+        .cube-face::after {
+            content: '';
+            position: absolute;
+            background: white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .face-front::after, .face-back::after, .face-top::after, .face-bottom::after {
+            width: 30px;
+            height: 100%;
+        }
+        .face-right::after, .face-left::after {
+            width: 30px;
+            height: 100%;
+        }
+        .face-top::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 30px;
+            background: white;
+        }
+
+        /* Lid (Top Face) Animation for Opening */
+        .cube.open .face-top {
+            transform-origin: top;
+            animation: openLid 1s forwards ease-in-out;
+        }
+        .cube.open {
+            animation: none;
+            transform: rotateX(20deg) rotateY(-20deg) scale(0.8);
+            opacity: 0;
+            transition: all 0.8s ease-in;
+        }
+
+        @keyframes openLid {
+            0% { transform: rotateX(90deg) translateZ(100px); }
+            100% { transform: rotateX(220deg) translateZ(100px); }
+        }
+
+        @keyframes spinIntro {
+            0% { transform: rotateX(-15deg) rotateY(0deg); }
+            100% { transform: rotateX(-15deg) rotateY(360deg); }
+        }
+
+        /* --- Main Content Layout --- */
+        #main-content {
+            display: none;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+
+        /* --- Scratch Card --- */
+        .scratch-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            margin: 0 auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            background: white;
+        }
+        
+        .secret-message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+            background: white;
+            z-index: 1;
+        }
+
+        #scratch-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            cursor: grab;
+            transition: opacity 1s;
+        }
+
+        /* --- 3D Tilt Cards --- */
+        .tilt-card {
+            transform-style: preserve-3d;
+            transform: perspective(1000px);
+            transition: transform 0.1s;
+        }
+        
+        .tilt-inner {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            transform: translateZ(20px);
+            transition: all 0.3s;
+        }
+
+        /* --- Music Player --- */
+        .music-player {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 50px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 50;
+            transform: translateY(100px);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .music-player.visible {
+            transform: translateY(0);
+        }
+        .music-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 126, 179, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 126, 179, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 126, 179, 0); }
+        }
+        
+        /* Cursor trail */
+        .cursor-trail {
+            width: 10px;
+            height: 10px;
+            background: var(--primary);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            animation: fadeOut 1s forwards;
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; transform: scale(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Dynamic Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Audio (Hidden) -->
+    <!-- Updated to use local file named 'music.mp3' -->
+    <audio id="bg-music" loop preload="auto" playsinline>
+        <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Music Player Controls -->
+    <div class="music-player" id="music-controls">
+        <div class="music-icon" onclick="toggleMusic()">
+            <i class="fas fa-music"></i>
+        </div>
+        <div class="text-sm font-semibold pr-4 text-gray-600">
+            <span id="music-status">Play Music</span>
+        </div>
+    </div>
+
+    <!-- Screen 1: 3D Gift Experience -->
+    <div id="scene-container">
+        <h1 class="text-4xl md:text-5xl text-pink-500 mb-16 cursive animate-pulse text-center px-4" style="text-shadow: 2px 2px 0px white;">
+            Something special for you...
+        </h1>
+        
+        <div class="cube-wrapper" id="gift-cube" onclick="openGift()">
+            <div class="cube">
+                <div class="cube-face face-front"><i class="fas fa-gift text-4xl text-white opacity-80"></i></div>
+                <div class="cube-face face-back"></div>
+                <div class="cube-face face-right"></div>
+                <div class="cube-face face-left"></div>
+                <div class="cube-face face-top"></div>
+                <div class="cube-face face-bottom"></div>
+            </div>
+        </div>
+        
+        <p class="mt-20 text-gray-500 font-semibold uppercase tracking-widest text-xs">Tap box to open</p>
+    </div>
+
+    <!-- Screen 2: Main Content -->
+    <main id="main-content" class="container mx-auto px-4 py-12 relative z-10">
+        
+        <!-- Header with Typing Effect -->
+        <div class="text-center mb-16">
+            <h1 class="text-6xl md:text-7xl text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 cursive mb-4" id="typewriter-h1"></h1>
+            <p class="text-xl text-gray-600 font-light" id="typewriter-p"></p>
+        </div>
+
+        <!-- Interactive Scratch Card Section -->
+        <div class="mb-20">
+            <div class="text-center mb-4">
+                <span class="bg-white px-4 py-1 rounded-full text-xs font-bold text-pink-500 shadow-sm uppercase tracking-wider">
+                    <i class="fas fa-hand-sparkles mr-2"></i>Scratch below to reveal
+                </span>
+            </div>
+            
+            <div class="scratch-container">
+                <div class="secret-message">
+                    <h3 class="text-3xl text-purple-600 cursive mb-4">You are amazing!</h3>
+                    <p class="text-gray-600 leading-relaxed text-lg">
+                        I wanted to take a moment to tell you how much your friendship means to me. 
+                        You bring so much light into the world just by being yourself. 
+                        Never forget how incredibly awesome you are! 🌟
+                    </p>
+                    <div class="mt-4 text-pink-400 text-2xl">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                </div>
+                <canvas id="scratch-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- 3D Tilt Gallery -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-5xl mx-auto mb-20">
+            <!-- Card 1 -->
+            <div class="tilt-card" onmousemove="handleTilt(event, this)" onmouseleave="resetTilt(this)">
+                <div class="tilt-inner p-4 bg-white">
+                    <div class="h-48 bg-yellow-100 rounded-lg flex items-center justify-center mb-4 overflow-hidden group">
+                        <i class="fas fa-sun text-6xl text-yellow-400 transform group-hover:scale-110 transition-transform duration-500"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-700 text-center">Pure Joy</h3>
+                    <p class="text-gray-500 text-center text-sm mt-2">Every moment with you is sunny.</p>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="tilt-card" onmousemove="handleTilt(event, this)" onmouseleave="resetTilt(this)">
+                <div class="tilt-inner p-4 bg-white">
+                    <div class="h-48 bg-pink-100 rounded-lg flex items-center justify-center mb-4 overflow-hidden group">
+                        <i class="fas fa-gem text-6xl text-pink-400 transform group-hover:rotate-12 transition-transform duration-500"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-700 text-center">Precious</h3>
+                    <p class="text-gray-500 text-center text-sm mt-2">A true gem of a friend.</p>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="tilt-card" onmousemove="handleTilt(event, this)" onmouseleave="resetTilt(this)">
+                <div class="tilt-inner p-4 bg-white">
+                    <div class="h-48 bg-blue-100 rounded-lg flex items-center justify-center mb-4 overflow-hidden group">
+                        <i class="fas fa-star text-6xl text-blue-400 transform group-hover:spin-slow transition-transform duration-500"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-700 text-center">Superstar</h3>
+                    <p class="text-gray-500 text-center text-sm mt-2">Keep shining bright!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Compliment Generator -->
+        <div class="max-w-xl mx-auto text-center pb-24">
+            <div class="bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-xl border border-white">
+                <div id="compliment-display" class="h-32 flex items-center justify-center">
+                    <p class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">
+                        Ready for a boost?
+                    </p>
+                </div>
+                <button onclick="nextCompliment()" class="group relative inline-flex items-center justify-center px-8 py-3 text-lg font-bold text-white transition-all duration-200 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 hover:scale-105 shadow-lg">
+                    <span>Spread the Love</span>
+                    <i class="fas fa-magic ml-2 group-hover:rotate-12 transition-transform"></i>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script>
+        // --- 1. Background Particle System ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 15 + 5;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
+                this.color = `rgba(${Math.random()*50 + 200}, ${Math.random()*50 + 100}, ${Math.random()*100 + 150}, ${Math.random() * 0.2 + 0.1})`;
+                this.rotation = Math.random() * 360;
+                this.shape = Math.random() > 0.5 ? 'heart' : 'circle';
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.rotation += 0.5;
+
+                if (this.x > canvas.width) this.x = 0;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                if (this.y < 0) this.y = canvas.height;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation * Math.PI / 180);
+                ctx.fillStyle = this.color;
+                
+                if (this.shape === 'heart') {
+                    // Simple heart drawing
+                    ctx.beginPath();
+                    const topCurveHeight = this.size * 0.3;
+                    ctx.moveTo(0, topCurveHeight);
+                    ctx.bezierCurveTo(0, 0, -this.size / 2, 0, -this.size / 2, topCurveHeight);
+                    ctx.bezierCurveTo(-this.size / 2, (this.size + topCurveHeight) / 2, 0, this.size, 0, this.size);
+                    ctx.bezierCurveTo(0, this.size, this.size / 2, (this.size + topCurveHeight) / 2, this.size / 2, topCurveHeight);
+                    ctx.bezierCurveTo(this.size / 2, 0, 0, 0, 0, topCurveHeight);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size/2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            }
+        }
+
+        function initParticles() {
+            for (let i = 0; i < 30; i++) {
+                particles.push(new Particle());
+            }
+        }
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        initParticles();
+        animateParticles();
+
+        // --- 2. 3D Cube Logic ---
+        const sceneContainer = document.getElementById('scene-container');
+        const cubeWrapper = document.getElementById('gift-cube');
+        const cube = document.querySelector('.cube');
+        
+        // Mouse movement parallax for the cube (Before opening)
+        sceneContainer.addEventListener('mousemove', (e) => {
+            if (cube.classList.contains('open')) return;
+            
+            const x = (window.innerWidth / 2 - e.clientX) / 20;
+            const y = (window.innerHeight / 2 - e.clientY) / 20;
+            
+            cubeWrapper.style.transform = `rotateX(${y}deg) rotateY(${x}deg)`;
+        });
+
+        function openGift() {
+            // Stop spinning animation and reset rotation for clean open
+            cube.style.animation = 'none';
+            cube.classList.add('open');
+
+            // Attempt to play background music immediately — this runs inside the
+            // click handler (a user gesture) so browsers should allow playback.
+            try {
+                const bg = document.getElementById('bg-music');
+                if (bg) {
+                    // Ensure it's not muted and start from 0
+                    bg.muted = false;
+                    bg.currentTime = 0;
+                    bg.play().then(() => {
+                        // update visible controls if present
+                        const status = document.getElementById('music-status');
+                        if (status) status.innerText = 'Playing...';
+                        const icon = document.querySelector('.music-icon i');
+                        if (icon) icon.className = 'fas fa-pause';
+                        const iconWrap = document.querySelector('.music-icon');
+                        if (iconWrap) iconWrap.style.animation = 'pulse 2s infinite';
+                    }).catch(err => {
+                        console.log('bg audio play blocked or failed:', err);
+                    });
+                }
+            } catch (e) { console.log('play attempt failed', e); }
+
+            // Sound effect could go here
+            
+            // Explosive Confetti
+            var duration = 3000;
+            var end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#ff718d', '#fdff6a']
+                });
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#7afcff', '#a29bfe']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+
+            // Transition
+            setTimeout(() => {
+                sceneContainer.style.opacity = '0';
+                sceneContainer.style.visibility = 'hidden';
+                
+                document.getElementById('main-content').style.display = 'block';
+                // Trigger reflow
+                void document.getElementById('main-content').offsetWidth;
+                document.getElementById('main-content').style.opacity = '1';
+                
+                // Show music controls
+                document.getElementById('music-controls').classList.add('visible');
+
+                // Start typing
+                startTyping();
+                
+                // Init Scratch Card
+                initScratchCard();
+
+            }, 1000);
+        }
+
+        // --- 3. Typing Effect ---
+        function startTyping() {
+            const h1Text = "Surprise! 🎉";
+            const pText = "Because you deserve a little magic today.";
+            let i = 0;
+            let j = 0;
+
+            function typeH1() {
+                if (i < h1Text.length) {
+                    document.getElementById("typewriter-h1").innerHTML += h1Text.charAt(i);
+                    i++;
+                    setTimeout(typeH1, 100);
+                } else {
+                    typeP();
+                }
+            }
+            
+            function typeP() {
+                if (j < pText.length) {
+                    document.getElementById("typewriter-p").innerHTML += pText.charAt(j);
+                    j++;
+                    setTimeout(typeP, 50);
+                }
+            }
+            typeH1();
+        }
+
+        // --- 4. Scratch Card Logic ---
+        function initScratchCard() {
+            const scratchCanvas = document.getElementById('scratch-canvas');
+            const scratchCtx = scratchCanvas.getContext('2d');
+            const container = document.querySelector('.scratch-container');
+            
+            // Set canvas size
+            scratchCanvas.width = container.offsetWidth;
+            scratchCanvas.height = container.offsetHeight;
+
+            // Fill with gold/gradient
+            const gradient = scratchCtx.createLinearGradient(0, 0, scratchCanvas.width, scratchCanvas.height);
+            gradient.addColorStop(0, '#fbc2eb');
+            gradient.addColorStop(0.5, '#a6c1ee');
+            gradient.addColorStop(1, '#fbc2eb');
+            scratchCtx.fillStyle = gradient;
+            scratchCtx.fillRect(0, 0, scratchCanvas.width, scratchCanvas.height);
+
+            // Add Text instructions on top
+            scratchCtx.font = "20px Quicksand";
+            scratchCtx.fillStyle = "#fff";
+            scratchCtx.textAlign = "center";
+            scratchCtx.fillText("Scratch me!", scratchCanvas.width/2, scratchCanvas.height/2);
+
+            let isDrawing = false;
+
+            function getMousePos(e) {
+                const rect = scratchCanvas.getBoundingClientRect();
+                return {
+                    x: (e.clientX || e.touches[0].clientX) - rect.left,
+                    y: (e.clientY || e.touches[0].clientY) - rect.top
+                };
+            }
+
+            function scratch(x, y) {
+                scratchCtx.globalCompositeOperation = 'destination-out';
+                scratchCtx.beginPath();
+                scratchCtx.arc(x, y, 30, 0, Math.PI * 2);
+                scratchCtx.fill();
+                
+                // Check percentage revealed (optional optimization: don't check every frame)
+                if (Math.random() > 0.9) checkReveal();
+            }
+
+            function checkReveal() {
+                // If mostly revealed, fade out the rest
+                // Simplified for performance
+            }
+
+            scratchCanvas.addEventListener('mousedown', () => isDrawing = true);
+            scratchCanvas.addEventListener('touchstart', () => isDrawing = true);
+            
+            window.addEventListener('mouseup', () => isDrawing = false);
+            window.addEventListener('touchend', () => isDrawing = false);
+
+            scratchCanvas.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                const pos = getMousePos(e);
+                scratch(pos.x, pos.y);
+            });
+            
+            scratchCanvas.addEventListener('touchmove', (e) => {
+                if (!isDrawing) return;
+                e.preventDefault();
+                const pos = getMousePos(e);
+                scratch(pos.x, pos.y);
+            });
+        }
+
+        // --- 5. 3D Tilt Cards ---
+        function handleTilt(e, card) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = ((y - centerY) / centerY) * -10; // Max 10deg
+            const rotateY = ((x - centerX) / centerX) * 10;
+
+            const inner = card.querySelector('.tilt-inner');
+            inner.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
+        }
+
+        function resetTilt(card) {
+            const inner = card.querySelector('.tilt-inner');
+            inner.style.transform = `perspective(1000px) rotateX(0) rotateY(0) translateZ(20px)`;
+        }
+
+        // --- 6. Music Toggle ---
+        let isPlaying = false;
+        const audio = document.getElementById('bg-music');
+        const musicStatus = document.getElementById('music-status');
+        const musicIcon = document.querySelector('.music-icon i');
+
+        function toggleMusic() {
+            if (isPlaying) {
+                audio.pause();
+                musicStatus.innerText = "Play Music";
+                musicIcon.className = "fas fa-music";
+                musicIcon.parentElement.style.animation = "none";
+            } else {
+                audio.play().then(() => {
+                    musicStatus.innerText = "Playing...";
+                    musicIcon.className = "fas fa-pause";
+                    musicIcon.parentElement.style.animation = "pulse 2s infinite";
+                }).catch(e => console.log("Audio play failed", e));
+            }
+            isPlaying = !isPlaying;
+        }
+
+        // --- 7. Compliment Generator ---
+        const compliments = [
+            "Your energy is pure sunshine! ☀️",
+            "You have a heart of gold. 💛",
+            "You're more capable than you know. 🚀",
+            "Your creative perspective is amazing. 🎨",
+            "You make people feel safe and heard. 🛡️",
+            "The world is lucky to have you. 🌍",
+            "You are absolutely enough, just as you are. ✨"
+        ];
+
+        function nextCompliment() {
+            const display = document.getElementById('compliment-display');
+            const random = compliments[Math.floor(Math.random() * compliments.length)];
+            
+            // Animate out
+            display.style.opacity = 0;
+            display.style.transform = 'translateY(-20px)';
+            display.style.transition = 'all 0.3s ease';
+
+            setTimeout(() => {
+                display.innerHTML = `<p class="text-2xl font-bold text-gray-700">${random}</p>`;
+                display.style.opacity = 1;
+                display.style.transform = 'translateY(0)';
+                
+                confetti({
+                    particleCount: 30,
+                    spread: 60,
+                    origin: { y: 0.8 },
+                    colors: ['#FFC0CB', '#FF69B4', '#800080']
+                });
+            }, 300);
+        }
+
+        // --- 8. Mouse Trail Effect ---
+        document.addEventListener('mousemove', function(e) {
+            const trail = document.createElement('div');
+            trail.className = 'cursor-trail';
+            trail.style.left = e.pageX + 'px';
+            trail.style.top = e.pageY + 'px';
+            document.body.appendChild(trail);
+            
+            setTimeout(() => {
+                trail.remove();
+            }, 1000);
+        });
+
+    </script>
+</body>
+</html>
